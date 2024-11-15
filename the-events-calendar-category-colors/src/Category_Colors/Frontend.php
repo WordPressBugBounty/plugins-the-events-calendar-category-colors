@@ -4,7 +4,7 @@
  *
  * @author   Andy Fragen
  * @license  MIT
- * @link     https://github.com/afragen/the-events-calendar-category-colors
+ * @link     https://github.com/the-events-calendar/the-events-calendar-category-colors
  * @package  the-events-calendar-category-colors
  */
 
@@ -156,12 +156,11 @@ class Frontend {
 	public function add_scripts_styles() {
 		wp_register_style( 'teccc-nofile-stylesheet', false, [], Main::$version );
 		wp_enqueue_style( 'teccc-nofile-stylesheet' );
-		wp_add_inline_style( 'teccc-nofile-stylesheet', $this->generate_css() );
+
+		wp_add_inline_style( 'teccc-nofile-stylesheet', $this->generate_css( tribe_get_request_var( 'refresh_css' ) ) );
 
 		// Optionally add legend superpowers.
-		if ( isset( $this->options['legend_superpowers'] )
-			&& '1' === $this->options['legend_superpowers']
-		) {
+		if ( ! empty( $this->options['legend_superpowers'] ) ) {
 			wp_register_script( 'legend_superpowers', $this->teccc->resources_url . '/legend-superpowers.js', [ 'jquery' ], Main::$version, true );
 			wp_enqueue_script( 'legend_superpowers' );
 		}
@@ -173,8 +172,7 @@ class Frontend {
 	 * @return void
 	 */
 	public function generate_css_on_update_option() {
-		$_GET['refresh_css'] = true;
-		$this->generate_css();
+		$this->generate_css( true );
 	}
 
 	/**
@@ -182,18 +180,8 @@ class Frontend {
 	 *
 	 * @return mixed|string
 	 */
-	public function generate_css() {
-		// TODO: remove after a couple of updates.
-		$css_dir = apply_filters( 'teccc_uploads_dir', wp_upload_dir()['basedir'] );
-		$css_dir = untrailingslashit( $css_dir );
-		foreach ( glob( "{$css_dir}/teccc*.css" ) as $file ) {
-			if ( file_exists( $file ) ) {
-				unlink( $file );
-			}
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$refresh = isset( $_GET['refresh_css'] );
+	public function generate_css( $refresh = false ) {
+		$refresh = tribe_is_truthy( $refresh );
 		$cache   = get_option( 'teccc_css' );
 
 		// Return if cache not expired.
@@ -201,11 +189,23 @@ class Frontend {
 			return $cache['css'];
 		}
 
+		$options = Admin::fetch_options( Main::instance() );
+
+		// TODO: remove after a couple of updates.
+		$css_dir = apply_filters( 'teccc_uploads_dir', wp_upload_dir()['basedir'] );
+		$css_dir = untrailingslashit( $css_dir );
+		foreach ( glob( "{$css_dir}/teccc*.css" ) as $file ) {
+			if ( ! file_exists( $file ) ) {
+				continue;
+			}
+			unlink( $file );
+		}
+
 		// Else generate the CSS afresh.
 		$css = $this->teccc->view(
 			'category.css',
 			[
-				'options' => $this->options,
+				'options' => $options,
 				'teccc'   => $this->teccc,
 			],
 			false
@@ -264,9 +264,9 @@ class Frontend {
 		if ( ! $v2_viewable && ! $is_extra_view ) {
 			return false;
 		}
-		if ( ! isset( $this->legendFilterHasRun[ $this->currentDisplay ] ) ) {
-			$this->legendFilterHasRun[ $this->currentDisplay ] = false;
-		}
+
+		$this->legendFilterHasRun[ $this->currentDisplay ] = $this->legendFilterHasRun[ $this->currentDisplay ] ?? false;
+
 		if ( $this->legendFilterHasRun[ $this->currentDisplay ] ) {
 			return false;
 		}
@@ -309,6 +309,8 @@ class Frontend {
 	 * @return bool
 	 */
 	public function reposition_legend( $tribeViewFilter ) {
+		_deprecated_function( __FUNCTION__, '6.8.4.3' );
+
 		// If the legend has already run they are probably doing something wrong.
 		if ( $this->legendFilterHasRun ) {
 			_doing_it_wrong(
@@ -333,6 +335,8 @@ class Frontend {
 	 * @return bool
 	 */
 	public function remove_default_legend() {
+		_deprecated_function( __FUNCTION__, '6.8.4.3' );
+
 		// If the legend has already run they are probably doing something wrong.
 		if ( $this->legendFilterHasRun ) {
 			_doing_it_wrong(
